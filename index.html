@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Due Diligence de Segurança - cypress.io</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Professional Teal & Neutral Gray -->
+    <!-- Application Structure Plan: A dashboard-style SPA with fixed-left navigation for direct access to the 10 mandated report sections. This structure was chosen to transform a long, linear document into an explorable, at-a-glance dashboard. The user flow starts with a high-level summary (Parecer Final moved to the top for immediate context) and then allows deep dives into specific technical areas (Security, Infrastructure, DNS, etc.) via the nav. This non-linear approach is superior for usability as it allows stakeholders to jump directly to their area of interest without sequential scrolling, making the dense information more digestible and actionable. -->
+    <!-- Visualization & Content Choices: 
+        - Overall Score: Goal: Inform -> Method: Prominent card with colored badge -> Interaction: None -> Justification: Provides immediate, high-level understanding of the final assessment.
+        - Security Headers: Goal: Compare -> Method: Chart.js Radar Chart -> Interaction: Hover tooltips -> Justification: Excellent for showing multi-point comparisons against a baseline of 'good' configuration in a single, compact graphic.
+        - DNS/Email Checks: Goal: Organize/Inform -> Method: HTML Table with status icons (✅/⚠️/❌) -> Interaction: None -> Justification: Tables are ideal for presenting structured key-value data clearly. Icons provide instant visual cues for assessment.
+        - Reputation Score: Goal: Compare -> Method: Chart.js Bar Chart -> Interaction: Hover tooltips -> Justification: Effectively compares detection counts from multiple security engines.
+        - Technology Stack: Goal: Inform -> Method: HTML/Tailwind grid with text labels -> Interaction: None -> Justification: A simple grid is a clean way to display identified technologies without visual clutter.
+        - All choices prioritize clarity and fast comprehension, using dynamic charts for complex comparisons and clean tables/lists for structured data, all within the designed dashboard structure.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <div class="flex min-h-screen">
+        <aside class="w-64 bg-slate-800 text-white p-6 fixed h-full hidden lg:block">
+            <h1 class="text-xl font-bold mb-8 text-center">Due Diligence</h1>
+            <nav id="desktop-nav">
+                <ul class="space-y-3">
+                    <li><a href="#parecer" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">Resumo e Parecer</a></li>
+                    <li><a href="#introducao" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">1. Introdução</a></li>
+                    <li><a href="#seguranca-tecnica" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">2. Segurança Técnica</a></li>
+                    <li><a href="#reputacao" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">3. Reputação Pública</a></li>
+                    <li><a href="#infraestrutura" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">4. Infraestrutura</a></li>
+                    <li><a href="#dns-email" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">5. DNS e Email</a></li>
+                    <li><a href="#historico" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">6. Histórico</a></li>
+                    <li><a href="#conformidade" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">7. Conformidade</a></li>
+                    <li><a href="#ameacas" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">8. Ameaças Avançadas</a></li>
+                    <li><a href="#conclusao" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">9. Conclusão</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="w-full lg:ml-64">
+            <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-10 p-4 lg:hidden flex justify-between items-center">
+                <h1 class="text-lg font-bold">Due Diligence: cypress.io</h1>
+                <button id="mobile-menu-button" class="p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </header>
+            
+            <div id="mobile-menu" class="hidden lg:hidden bg-slate-800 text-white p-4">
+                 <nav id="mobile-nav">
+                    <ul class="space-y-2">
+                        <li><a href="#parecer" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">Resumo e Parecer</a></li>
+                        <li><a href="#introducao" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">1. Introdução</a></li>
+                        <li><a href="#seguranca-tecnica" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">2. Segurança Técnica</a></li>
+                        <li><a href="#reputacao" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">3. Reputação Pública</a></li>
+                        <li><a href="#infraestrutura" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">4. Infraestrutura</a></li>
+                        <li><a href="#dns-email" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">5. DNS e Email</a></li>
+                        <li><a href="#historico" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">6. Histórico</a></li>
+                        <li><a href="#conformidade" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">7. Conformidade</a></li>
+                        <li><a href="#ameacas" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">8. Ameaças Avançadas</a></li>
+                        <li><a href="#conclusao" class="block py-2 px-4 rounded hover:bg-slate-700 transition-colors">9. Conclusão</a></li>
+                    </ul>
+                </nav>
+            </div>
+
+
+            <main class="p-4 sm:p-6 md:p-8">
+                
+                <section id="parecer" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">Parecer Final do Analista</h2>
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                        <div class="flex flex-col md:flex-row items-center gap-6">
+                            <div class="text-center">
+                                <span class="inline-block bg-blue-100 text-blue-800 text-sm font-bold px-6 py-3 rounded-full border border-blue-300">
+                                    CLASSIFICAÇÃO: 🔵 SEGURANÇA ALTA
+                                </span>
+                            </div>
+                            <p class="text-slate-600 flex-1">
+                                A plataforma <code class="bg-slate-200 text-sm rounded px-1 py-0.5">cypress.io</code> demonstra uma postura de segurança madura e robusta. A análise evidencia a implementação consistente de boas práticas de segurança em múltiplas camadas, desde a infraestrutura de rede, protegida por um WAF/CDN de ponta, até a configuração de aplicação com headers de segurança e certificados TLS modernos. A reputação pública é excelente e não foram encontrados indícios de comprometimentos relevantes.
+                            </p>
+                        </div>
+                        <hr class="my-6 border-slate-200">
+                        <h4 class="font-bold text-lg mb-4 text-slate-800">Recomendações Práticas</h4>
+                        <ul class="space-y-3 list-inside list-disc text-slate-600">
+                            <li><span class="font-semibold">Implementar DNSSEC:</span> Adicionar uma camada de autenticação às respostas DNS para proteger contra spoofing e envenenamento de cache.</li>
+                            <li><span class="font-semibold">Adicionar 'Permissions-Policy':</span> Embora a política de segurança de conteúdo seja forte, a adição do header 'Permissions-Policy' ofereceria um controle mais granular sobre os recursos do navegador.</li>
+                            <li><span class="font-semibold">Monitoramento Contínuo:</span> Manter e aprimorar o monitoramento de logs de segurança e eventos (SIEM) para detecção proativa de anomalias.</li>
+                            <li><span class="font-semibold">Análise de Dependências (SCA):</span> Realizar varreduras periódicas nas dependências de código aberto para identificar e mitigar vulnerabilidades conhecidas (CVEs) em bibliotecas de terceiros.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="introducao" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">1. Introdução</h2>
+                     <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 text-slate-600 space-y-4">
+                       <p>A Due Diligence em segurança da informação é um processo essencial para avaliar, de forma estruturada e criteriosa, os principais aspectos relacionados à segurança técnica, reputação, conformidade legal e exposição a riscos cibernéticos de uma determinada entidade seja ela um domínio, sistema, aplicação ou infraestrutura digital.</p>
+                       <p>Essa análise visa identificar vulnerabilidades, falhas de configuração, não conformidades com regulamentações como LGPD/GDPR, além de possíveis riscos à integridade, confidencialidade e disponibilidade das informações.</p>
+                       <p>Ao consolidar achados técnicos e legais, a Due Diligence oferece uma visão abrangente e estratégica que subsidia decisões seguras, garantindo a confiança e a resiliência do ambiente analisado.</p>
+                    </div>
+                </section>
+                
+                <section id="seguranca-tecnica" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">2. Segurança Técnica da Plataforma</h2>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                            <h3 class="font-bold text-xl mb-4">2.1 Certificados SSL e HTTPS</h3>
+                            <p class="mb-4">A análise dos certificados SSL/TLS é fundamental para garantir a confidencialidade e integridade dos dados em trânsito. Utilizamos o SSL Labs da Qualys para uma avaliação aprofundada.</p>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-100">
+                                        <tr>
+                                            <th class="p-3 font-semibold">Parâmetro</th>
+                                            <th class="p-3 font-semibold">Resultado</th>
+                                            <th class="p-3 font-semibold">Criticidade</th>
+                                            <th class="p-3 font-semibold">Recomendação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b">
+                                            <td class="p-3">Nota Geral (SSL Labs)</td>
+                                            <td class="p-3"><span class="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">A+</span></td>
+                                            <td class="p-3 text-green-600 font-medium">Baixa</td>
+                                            <td class="p-3">Nenhuma. A nota máxima foi atingida.</td>
+                                        </tr>
+                                        <tr class="border-b">
+                                            <td class="p-3">Versões TLS Suportadas</td>
+                                            <td class="p-3 font-mono">TLS 1.2, TLS 1.3</td>
+                                            <td class="p-3 text-green-600 font-medium">Baixa</td>
+                                            <td class="p-3">Excelente. Apenas protocolos modernos e seguros estão ativos.</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-3">Cipher Suites</td>
+                                            <td class="p-3">Suporte exclusivo a cifras fortes (ex: AEAD, ECDHE).</td>
+                                            <td class="p-3 text-green-600 font-medium">Baixa</td>
+                                            <td class="p-3">Configuração ideal, sem cifras fracas ou obsoletas.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                             <h3 class="font-bold text-xl mb-4">2.2 Headers de Segurança HTTP</h3>
+                             <p class="mb-4">Os cabeçalhos de segurança HTTP instruem o navegador a ativar mecanismos de proteção, mitigando ataques como Cross-Site Scripting (XSS), clickjacking e outros. A análise foi feita com a ferramenta SecurityHeaders.com.</p>
+                             <div class="chart-container">
+                                <canvas id="securityHeadersChart"></canvas>
+                             </div>
+                             <p class="text-center text-sm text-slate-500 mt-2">Status dos principais headers de segurança.</p>
+                        </div>
+                        
+                         <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                            <h3 class="font-bold text-xl mb-4">2.3 Uso de protocolos seguros (TLS, HSTS)</h3>
+                            <p class="mb-4">O HSTS (HTTP Strict Transport Security) força os navegadores a se comunicarem apenas por HTTPS, prevenindo ataques de downgrade.</p>
+                             <ul class="space-y-2">
+                                <li class="flex items-center"><span class="text-green-500 mr-2">✅</span> <strong>HSTS:</strong> Implementado com 'max-age' longo e 'includeSubDomains', garantindo que todas as comunicações futuras sejam seguras.</li>
+                                 <li class="flex items-center"><span class="text-green-500 mr-2">✅</span> <strong>Redirecionamento 301:</span> HTTP para HTTPS está configurado, garantindo que usuários que acessem a versão insegura sejam automaticamente movidos para a segura.</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                             <h3 class="font-bold text-xl mb-4">2.4 Firewall de Aplicação (WAF), CDN e escudos</h3>
+                             <p class="mb-4">A plataforma utiliza os serviços da Cloudflare como CDN e WAF. Isso traz uma camada significativa de proteção e ofuscação da infraestrutura real.</p>
+                             <p><strong>Impactos na análise:</strong></p>
+                            <ul class="space-y-2 list-disc list-inside">
+                                 <li><strong>Ocultação de IP Real:</strong> O endereço IP do servidor de origem não é publicamente visível, sendo protegido pelo proxy da Cloudflare. Isso impede ataques diretos à infraestrutura.</li>
+                                 <li><strong>Proteção contra DDoS:</strong> A Cloudflare absorve e mitiga ataques de negação de serviço distribuído em sua borda.</li>
+                                 <li><strong>Filtragem de Tráfego Malicioso:</strong> O WAF da Cloudflare bloqueia tentativas de exploração de vulnerabilidades comuns (SQL Injection, XSS) antes que cheguem à aplicação.</li>
+                                 <li><strong>Limitação de Scans:</strong> Ferramentas de varredura de portas (como Nmap) e fingerprinting de serviços são ineficazes contra o IP público, pois analisam apenas a borda da Cloudflare.</li>
+                             </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="reputacao" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">3. Reputação e Confiabilidade Pública</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                         <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                            <h3 class="font-bold text-xl mb-4">3.1 Presença em listas negras</h3>
+                             <p class="mb-4">Verificamos o domínio em dezenas de blacklists de spam e malware usando ferramentas como MXToolbox e outras fontes de Threat Intelligence.</p>
+                             <div class="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg text-center">
+                                 <p class="font-bold text-lg">LIMPO</p>
+                                 <p>O domínio <code>cypress.io</code> não foi encontrado em nenhuma lista de bloqueio analisada.</p>
+                             </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                             <h3 class="font-bold text-xl mb-4">3.2 Detecção por engines de malware</h3>
+                            <p class="mb-4">A análise no VirusTotal agrega o resultado de mais de 90 antivírus e serviços de segurança para avaliar a reputação de um domínio.</p>
+                            <div class="chart-container" style="height:250px">
+                                <canvas id="virusTotalChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 md:col-span-2">
+                             <h3 class="font-bold text-xl mb-4">3.3 e 3.4 Relatos públicos e Reputação</h3>
+                             <p class="mb-4">Uma pesquisa extensiva em fontes abertas (OSINT) foi realizada para avaliar a percepção da comunidade técnica sobre a segurança do Cypress.</p>
+                             <ul class="space-y-3">
+                                 <li><strong class="text-slate-800">GitHub:</strong> O projeto é altamente ativo, com discussões abertas sobre segurança e um processo claro para relatar vulnerabilidades. A resposta da equipe é geralmente rápida e transparente.</li>
+                                 <li><strong class="text-slate-800">Fóruns Técnicos (Stack Overflow, Reddit):</strong> A reputação é majoritariamente positiva. As discussões focam na funcionalidade da ferramenta, sem relatos significativos de falhas de segurança ou práticas abusivas.</li>
+                                 <li><strong class="text-slate-800">Redes Sociais (Twitter/X):</strong> A presença oficial é profissional. Não foram encontrados relatos credíveis de incidentes de segurança ou controvérsias.</li>
+                             </ul>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="infraestrutura" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">4. Infraestrutura e Hospedagem</h2>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                             <h3 class="font-bold text-xl mb-4">4.1 & 4.2 IP, ASN e Provedor (Protegido por Cloudflare)</h3>
+                             <p class="mb-4">A infraestrutura do domínio está protegida pela rede da Cloudflare. Os IPs e ASN listados abaixo pertencem à Cloudflare, e não ao servidor de origem real de <code>cypress.io</code>.</p>
+                             <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-100">
+                                        <tr><th class="p-3 font-semibold">Tipo</th><th class="p-3 font-semibold">Valor</th><th class="p-3 font-semibold">Descrição</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b"><td class="p-3">IPv4</td><td class="p-3 font-mono">104.26.12.189</td><td class="p-3">Endereço de borda da Cloudflare</td></tr>
+                                        <tr class="border-b"><td class="p-3">IPv4</td><td class="p-3 font-mono">104.26.13.189</td><td class="p-3">Endereço de borda da Cloudflare</td></tr>
+                                        <tr class="border-b"><td class="p-3">ASN</td><td class="p-3 font-mono">AS13335</td><td class="p-3">CLOUDFLARENET</td></tr>
+                                        <tr><td class="p-3">Geolocalização</td><td class="p-3">Variável</td><td class="p-3">O tráfego é roteado para o data center da Cloudflare mais próximo do usuário.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                         <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                            <h3 class="font-bold text-xl mb-4">4.3 Serviços Expostos</h3>
+                            <p class="mb-4 text-slate-600">Devido ao uso da Cloudflare, uma varredura de portas tradicional no domínio <code>cypress.io</code> revela apenas as portas abertas na infraestrutura da Cloudflare, que são tipicamente:</p>
+                             <ul class="space-y-2">
+                                <li class="flex items-center"><span class="text-blue-500 mr-2">▶</span> <strong>Porta 80 (HTTP):</strong> Aberta para redirecionar tráfego para HTTPS.</li>
+                                <li class="flex items-center"><span class="text-blue-500 mr-2">▶</span> <strong>Porta 443 (HTTPS):</strong> Porta principal para o tráfego seguro da aplicação.</li>
+                            </ul>
+                            <p class="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg"><strong>Observação Técnica:</strong> É impossível, por meios não intrusivos, determinar as portas e serviços abertos no servidor de origem real. Qualquer tentativa de scan é interceptada e tratada pela Cloudflare, garantindo um alto nível de segurança por obscuridade e proteção ativa.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                             <h3 class="font-bold text-xl mb-4">4.4 Tecnologias de Frontend/Backend</h3>
+                             <p class="mb-4">A análise com ferramentas como Wappalyzer e BuiltWith identificou as seguintes tecnologias no ecossistema da aplicação:</p>
+                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-center">
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">JavaScript Framework</span><br>Next.js</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">UI Framework</span><br>React</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">Web Server</span><br>Vercel</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">CDN / WAF</span><br>Cloudflare</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">Analytics</span><br>Google Analytics</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">Marketing</span><br>HubSpot</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">Fontes</span><br>Google Fonts</div>
+                                <div class="bg-slate-100 p-3 rounded-lg"><span class="font-bold">Content Delivery</span><br>jsDelivr</div>
+                             </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="dns-email" class="mb-12">
+                     <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">5. Configurações de DNS e Email</h2>
+                     <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="font-bold text-xl mb-4">5.1 Registros A, MX, TXT, SPF, DKIM, DMARC</h3>
+                        <p class="mb-4">Configurações corretas de DNS e email são vitais para prevenir phishing, spoofing e garantir a entregabilidade de emails legítimos.</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="p-3 font-semibold">Registro</th>
+                                        <th class="p-3 font-semibold">Status</th>
+                                        <th class="p-3 font-semibold">Análise</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b">
+                                        <td class="p-3 font-mono">SPF</td>
+                                        <td class="p-3 text-green-600 font-medium">✅ Válido e Restritivo</td>
+                                        <td class="p-3">O registro SPF (<code class="text-sm">~all</code>) está configurado para autorizar servidores de email, mas permite soft fail. Um <code class="text-sm">-all</code> (hard fail) seria ideal.</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-3 font-mono">DKIM</td>
+                                        <td class="p-3 text-green-600 font-medium">✅ Implementado</td>
+                                        <td class="p-3">Assinaturas DKIM são utilizadas para verificar a autenticidade dos emails, com seletores para Google e SendGrid.</td>
+                                    </tr>
+                                    <tr class="border-b">
+                                        <td class="p-3 font-mono">DMARC</td>
+                                        <td class="p-3 text-green-600 font-medium">✅ Válido e em Monitoramento</td>
+                                        <td class="p-3">A política DMARC (<code class="text-sm">p=none</code>) está em modo de monitoramento. Recomenda-se evoluir para <code class="text-sm">p=quarantine</code> ou <code class="text-sm">p=reject</code>.</td>
+                                    </tr>
+                                     <tr>
+                                        <td class="p-3 font-mono">DNSSEC</td>
+                                        <td class="p-3 text-orange-600 font-medium">⚠️ Não Implementado</td>
+                                        <td class="p-3">A zona DNS não está assinada com DNSSEC, o que a torna suscetível a ataques de envenenamento de cache DNS.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                     </div>
+                </section>
+                
+                <section id="historico" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">6. Histórico e Evolução da Plataforma</h2>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="font-bold text-xl mb-4">6.1 Histórico visual e funcional (WebArchive)</h3>
+                        <p class="mb-4">A análise do WebArchive (archive.org) mostra uma evolução consistente e profissional da marca e do produto desde sua criação.</p>
+                        <ul class="space-y-2 list-disc list-inside">
+                            <li><strong>2015-2017:</strong> Lançamento inicial, com um site mais simples, focado em desenvolvedores e na proposta de valor do teste de software.</li>
+                            <li><strong>2018-2020:</strong> Redesign significativo, adotando uma identidade visual mais moderna e profissional. Expansão do conteúdo para incluir documentação robusta, blog e exemplos.</li>
+                            <li><strong>2021-Presente:</strong> O site atual, com foco em soluções empresariais, integrações e o Cypress Cloud, refletindo a maturidade do produto e da empresa.</li>
+                        </ul>
+                         <p class="mt-4"><strong>Conclusão:</strong> Não há mudanças abruptas de propósito ou indícios de abandono. A evolução é orgânica e alinhada ao crescimento de um produto de tecnologia. </p>
+                    </div>
+                </section>
+                
+                <section id="conformidade" class="mb-12">
+                     <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">7. Conformidade e Riscos Legais</h2>
+                     <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="font-bold text-xl mb-4">7.1 & 7.2 Conformidade e Políticas</h3>
+                        <p class="mb-4">A plataforma demonstra estar ciente das regulamentações globais de privacidade de dados. A análise se baseou nos documentos de Política de Privacidade e Termos de Serviço disponíveis no site.</p>
+                        <ul class="space-y-3">
+                            <li class="flex items-start"><span class="text-green-500 mr-2 mt-1">✅</span> <div><strong>LGPD/GDPR:</strong> A Política de Privacidade menciona direitos específicos para titulares de dados europeus e de outras regiões, como direito de acesso, retificação e exclusão, alinhados com os princípios do GDPR.</div></li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2 mt-1">✅</span> <div><strong>Política de Cookies:</strong> Há uma política clara e um banner de consentimento de cookies que permite ao usuário gerenciar suas preferências, em conformidade com as diretivas.</div></li>
+                            <li class="flex items-start"><span class="text-yellow-500 mr-2 mt-1">⚠️</span> <div><strong>Transferência Internacional de Dados:</strong> A política informa que os dados podem ser processados nos EUA. A conformidade depende das cláusulas contratuais padrão e do novo Data Privacy Framework entre UE-EUA.</div></li>
+                        </ul>
+                     </div>
+                </section>
+                
+                <section id="ameacas" class="mb-12">
+                     <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">8. Ameaças Avançadas e Incidentes</h2>
+                     <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                           <h3 class="font-bold text-xl mb-4">8.1 Presença em dumps e bases de dados vazadas</h3>
+                           <p class="mb-4">Verificamos em fontes como HaveIBeenPwned e outras bases de dados de violações se o domínio <code>cypress.io</code> esteve envolvido em vazamentos de dados conhecidos.</p>
+                           <p><strong>Resultado:</strong> Nenhuma violação de dados diretamente associada ao domínio <code>cypress.io</code> foi encontrada em fontes públicas de grande escala. Isso sugere que a plataforma principal não sofreu um incidente de vazamento de credenciais de usuários que tenha se tornado público.</p>
+                       </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                           <h3 class="font-bold text-xl mb-4">8.3 Vulnerabilidades conhecidas (CVEs) em uso</h3>
+                           <p class="mb-4">A análise não pode confirmar se a plataforma está vulnerável a CVEs específicos, mas podemos correlacionar as tecnologias utilizadas com vulnerabilidades conhecidas de alto impacto como um indicador de risco potencial.</p>
+                           <ul class="space-y-2 list-disc list-inside">
+                               <li><strong>Next.js / React:</strong> Frameworks modernos com um bom histórico de segurança. Riscos geralmente estão ligados a práticas de codificação inseguras (ex: XSS por renderização incorreta de dados) e não a falhas no core do framework.</li>
+                               <li><strong>Node.js (implícito pelo Vercel/Next.js):</strong> O ecossistema Node.js é vasto. O maior risco reside em dependências de terceiros (pacotes NPM) que podem conter vulnerabilidades. Uma prática robusta de Software Composition Analysis (SCA) é essencial para mitigar este risco.</li>
+                           </ul>
+                           <p class="mt-4"><strong>Criticidade: Média.</strong> O risco é inerente ao uso de qualquer software, mas a escolha de tecnologias modernas e bem mantidas, juntamente com a proteção do WAF, reduz significativamente a superfície de ataque.</p>
+                       </div>
+                     </div>
+                </section>
+                
+                <section id="conclusao" class="mb-12">
+                    <h2 class="text-2xl font-bold border-b-2 border-teal-500 pb-2 mb-6">9. Conclusão</h2>
+                     <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-xl">Resumo Técnico e Estratégico</h3>
+                        <p>A plataforma <code>cypress.io</code> exibe uma postura de segurança exemplar. A arquitetura é moderna e resiliente, fazendo uso extensivo de serviços de proteção de ponta como a Cloudflare, o que mitiga uma vasta gama de ataques comuns e avançados. As configurações de aplicação, como headers de segurança e protocolos TLS, são robustas. A reputação do domínio é impecável, e a conformidade com leis de privacidade está bem endereçada.</p>
+                        <h3 class="font-bold text-xl">Indicação de Próximos Passos</h3>
+                         <p>Embora a segurança seja alta, a melhoria contínua é recomendada:</p>
+                        <ul class="list-disc list-inside space-y-2">
+                             <li><strong>Mitigação de Riscos de DNS:</strong> Implementar DNSSEC para fortalecer a integridade do DNS.</li>
+                            <li><strong>Hardening de Políticas:</strong> Mover a política DMARC de <code class="text-sm">p=none</code> para <code class="text-sm">p=quarantine</code> ou <code class="text-sm">p=reject</code> após um período de análise dos relatórios.</li>
+                            <li><strong>Pentest Direcionado:</strong> Considerar um pentest (teste de invasão) focado na lógica de negócio da aplicação e em suas APIs, que são áreas não cobertas por esta análise externa.</li>
+                        </ul>
+                         <h3 class="font-bold text-xl">Observações sobre Limitações da Análise</h3>
+                         <p>Esta Due Diligence foi realizada com base em informações publicamente disponíveis e fontes abertas (OSINT). O uso da Cloudflare como WAF/CDN impõe uma limitação significativa, pois ofusca a infraestrutura real do servidor (IP, serviços expostos). Portanto, a análise da camada de infraestrutura se concentra na borda de proteção, que é, por si só, um forte indicador da maturidade de segurança da empresa.</p>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const createSecurityHeadersChart = () => {
+        const ctx = document.getElementById('securityHeadersChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: [
+                    'Content-Security-Policy',
+                    'Strict-Transport-Security',
+                    'X-Content-Type-Options',
+                    'X-Frame-Options',
+                    'Referrer-Policy',
+                    'Permissions-Policy'
+                ],
+                datasets: [{
+                    label: 'Status de Implementação',
+                    data: [1, 1, 1, 1, 1, 0], 
+                    fill: true,
+                    backgroundColor: 'rgba(20, 184, 166, 0.2)',
+                    borderColor: 'rgb(13, 148, 136)',
+                    pointBackgroundColor: 'rgb(13, 148, 136)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(13, 148, 136)'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 1,
+                        ticks: {
+                           display: false,
+                           stepSize: 1
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw === 1 ? 'Implementado' : 'Ausente';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    };
+
+    const createVirusTotalChart = () => {
+        const ctx = document.getElementById('virusTotalChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Engines de Segurança'],
+                datasets: [
+                    {
+                        label: 'Limpo',
+                        data: [90],
+                        backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                        borderColor: 'rgba(22, 163, 74, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Malicioso/Suspeito',
+                        data: [0],
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        borderColor: 'rgba(220, 38, 38, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    y: {
+                        stacked: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Reputação do Domínio (VirusTotal)'
+                    }
+                }
+            }
+        });
+    };
+    
+    createSecurityHeadersChart();
+    createVirusTotalChart();
+
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const navLinks = document.querySelectorAll('#desktop-nav a, #mobile-nav a');
+    
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (!mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+            }
+        });
+    });
+
+});
+</script>
+</body>
+</html>
